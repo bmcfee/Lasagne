@@ -40,7 +40,7 @@ class CCLayer(Layer):
 
 class Conv2DCCLayer(CCLayer):
     def __init__(self, incoming, num_filters, filter_size, strides=(1, 1),
-                 border_mode=None, untie_biases=False, W=init.Uniform(),
+                 border_mode=None, untie_biases=False, W=None,
                  b=init.Constant(0.), nonlinearity=nonlinearities.rectify,
                  pad=None, dimshuffle=True, flip_filters=False, partial_sum=1,
                  **kwargs):
@@ -93,6 +93,12 @@ class Conv2DCCLayer(CCLayer):
         else:
             self.pad = pad
 
+        if W is None:
+            if dimshuffle:
+                W = init.GlorotUniform()
+            else:
+                W = init.GlorotUniform(c01b=True)
+
         self.W = self.create_param(W, self.get_W_shape())
         if b is None:
             self.b = None
@@ -134,12 +140,12 @@ class Conv2DCCLayer(CCLayer):
             batch_size = input_shape[3]
             input_rows, input_columns = input_shape[1:3]
 
-        output_rows = conv_output_length(input_shape[2],
+        output_rows = conv_output_length(input_rows,
                                          self.filter_size,
                                          self.stride,
                                          'pad', self.pad)
 
-        output_columns = conv_output_length(input_shape[3],
+        output_columns = conv_output_length(input_columns,
                                             self.filter_size,
                                             self.stride,
                                             'pad', self.pad)
@@ -301,7 +307,7 @@ class NINLayer_c01b(Layer):
     and reshapes required and might be faster as a result.
     """
     def __init__(self, incoming, num_units, untie_biases=False,
-                 W=init.Uniform(), b=init.Constant(0.),
+                 W=init.GlorotUniform(c01b=True), b=init.Constant(0.),
                  nonlinearity=nonlinearities.rectify, **kwargs):
         super(NINLayer_c01b, self).__init__(incoming, **kwargs)
         if nonlinearity is None:
